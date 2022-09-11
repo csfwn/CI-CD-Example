@@ -1,0 +1,71 @@
+cache:
+  paths:
+  - vendor/
+  
+before_script:
+  - echo "Before script"
+
+stages:
+  - build
+  - test  
+  - deploy
+
+build:
+  stage: build
+  script: 
+    - echo "Building the app"   
+    - composer install 
+  artifacts:
+    paths:
+      - vendor/
+    expire_in: 1 hour
+test:
+  stage: test
+  script:     
+    - echo "Running tests"
+    - vendor/bin/phpunit
+
+deploy_dev:
+  stage: deploy
+  script:
+    - echo "Deploy to dev server" 
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")
+    - php artisan deploy dev
+  environment:
+    name: development
+    url: <STAGING_URL>
+  when: manual
+  only:
+    - develop
+
+deploy_dev_new:
+  stage: deploy
+  script:
+    - echo "Deploy to dev server" 
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY_GLOBAL")
+    - php artisan deploy dev_new
+  environment:
+    name: development
+    url: <STAGING_URL_2>
+  when: manual
+  only:
+    - develop
+   
+deploy_prod:
+  stage: deploy
+  script:
+    - echo "Deploy to production server"
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")    
+    - php artisan deploy prod
+  environment:
+    name: production
+    url: <PRODUCTION_URL>
+  when: manual
+  only:
+    - master
